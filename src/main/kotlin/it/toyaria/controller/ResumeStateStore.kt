@@ -12,16 +12,23 @@ import kotlin.io.path.readText
 import kotlin.io.path.writeText
 import kotlinx.serialization.json.Json
 
-class ResumeStateStore(private val destination: Path) {
+/** Persists and loads download progress snapshots used to resume interrupted transfers. */
+class ResumeStateStore(destination: Path) {
     private val json = Json { prettyPrint = true }
     private val stateFile: Path =
         destination.resolveSibling(".${destination.fileName}.toyaria-state.json")
 
+    /** Serializes [state] to the sidecar JSON state file. */
     fun save(state: DownloadState) {
         stateFile.parent?.createDirectories()
         stateFile.writeText(json.encodeToString(DownloadState.serializer(), state))
     }
 
+    /**
+     * Loads a previously saved state file, or returns `null` when no state exists.
+     *
+     * @return persisted [DownloadState], or `null` if the state file is absent.
+     */
     fun load(): DownloadState? {
         if (!stateFile.exists()) {
             return null
@@ -29,11 +36,17 @@ class ResumeStateStore(private val destination: Path) {
         return json.decodeFromString(DownloadState.serializer(), stateFile.readText())
     }
 
+    /** Deletes the persisted state file if present. */
     fun delete() {
         stateFile.deleteIfExists()
     }
 }
 
+/**
+ * Converts a runtime [Chunk] into its JSON-friendly representation.
+ *
+ * @return serialized chunk payload suitable for persistence.
+ */
 fun Chunk.toSerializable(): SerializableChunk =
     SerializableChunk(
         index = index,
@@ -43,6 +56,11 @@ fun Chunk.toSerializable(): SerializableChunk =
         checksum = checksum,
     )
 
+/**
+ * Converts a persisted chunk payload back into a runtime [Chunk].
+ *
+ * @return runtime chunk reconstructed from persisted values.
+ */
 fun SerializableChunk.toChunk(): Chunk =
     Chunk(
         index = index,

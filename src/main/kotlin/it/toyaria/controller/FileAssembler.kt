@@ -9,6 +9,12 @@ import java.nio.file.StandardOpenOption
 import kotlin.io.path.createDirectories
 import kotlin.io.path.exists
 
+/**
+ * Writes downloaded chunks directly into their final offsets in the destination file.
+ *
+ * The file is pre-allocated in the constructor so worker writes are positional overwrites instead
+ * of append operations.
+ */
 class FileAssembler(destination: Path, fileSize: Long) : Closeable {
     private val channel: FileChannel
 
@@ -28,6 +34,7 @@ class FileAssembler(destination: Path, fileSize: Long) : Closeable {
         channel.write(ByteBuffer.allocate(1), fileSize - 1)
     }
 
+    /** Writes chunk payload bytes at [Chunk.startByte]. */
     fun write(chunk: Chunk, bytes: ByteArray) {
         check(bytes.size.toLong() == chunk.size) {
             "Chunk ${chunk.index} has invalid payload size ${bytes.size}; expected ${chunk.size}"
@@ -35,6 +42,7 @@ class FileAssembler(destination: Path, fileSize: Long) : Closeable {
         channel.write(ByteBuffer.wrap(bytes), chunk.startByte)
     }
 
+    /** Closes the underlying file channel. */
     override fun close() {
         channel.close()
     }

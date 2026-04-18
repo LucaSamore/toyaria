@@ -13,7 +13,22 @@ private const val RETRY_INITIAL_DELAY_MS: Long = 500L
 private const val RETRY_BACKOFF_FACTOR: Double = 2.0
 private const val RETRY_ATTEMPTS: Int = 3
 
+/**
+ * Worker that consumes chunks from a shared queue and downloads them.
+ *
+ * For each chunk, the worker retries transient failures, computes a per-chunk digest, writes bytes
+ * at the target offset, and publishes a completion event.
+ */
 class ChunkWorker {
+    /**
+     * Runs the worker loop until the input channel is closed.
+     *
+     * @param channel shared chunk queue.
+     * @param client HTTP range client used to fetch chunk bytes.
+     * @param assembler destination writer for positional chunk writes.
+     * @param config immutable download settings.
+     * @param events output channel for worker events.
+     */
     suspend fun run(
         channel: ReceiveChannel<Chunk>,
         client: FileServerClient,
@@ -34,6 +49,19 @@ class ChunkWorker {
     }
 }
 
+/**
+ * Retries [block] with exponential backoff.
+ *
+ * Cancellation is propagated immediately; non-cancellation failures are retried up to [maxAttempts]
+ * times.
+ *
+ * @param maxAttempts total attempt count, including the final attempt.
+ * @param initialDelayMs initial backoff delay in milliseconds.
+ * @param factor delay multiplier applied after each failed attempt.
+ * @param block operation to execute.
+ * @return successful result produced by [block].
+ * @throws CancellationException when coroutine cancellation is detected.
+ */
 suspend fun <T> retry(
     maxAttempts: Int = RETRY_ATTEMPTS,
     initialDelayMs: Long = RETRY_INITIAL_DELAY_MS,

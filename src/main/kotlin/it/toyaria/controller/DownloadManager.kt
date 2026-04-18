@@ -17,12 +17,28 @@ import kotlinx.coroutines.launch
 
 private const val MILLIS_PER_SECOND: Long = 1000L
 
+/**
+ * Orchestrates the full download lifecycle.
+ *
+ * [DownloadManager] coordinates chunk resolution, worker execution, resume-state persistence,
+ * progress reporting, and optional end-to-end checksum verification.
+ */
 class DownloadManager(
     private val client: FileServerClient,
     private val scheduler: ChunkScheduler = ChunkScheduler(),
     private val worker: ChunkWorker = ChunkWorker(),
     private val storeFactory: (Path) -> ResumeStateStore = ::ResumeStateStore,
 ) {
+    /**
+     * Starts a download and emits lifecycle updates as a [Flow] of [DownloadEvent].
+     *
+     * The returned flow emits progress and chunk completion events while workers run, then emits
+     * [DownloadEvent.Completed] on success or [DownloadEvent.Failed] when an error aborts the
+     * transfer.
+     *
+     * @param config immutable download settings for a single transfer.
+     * @return cold flow that starts the download when collected.
+     */
     fun download(config: DownloadConfig): Flow<DownloadEvent> = flow {
         validateConfig(config)
         val fileSize = client.getFileSize(config.url)
@@ -45,6 +61,11 @@ class DownloadManager(
         require(config.chunkSize > 0) { "chunkSize must be positive" }
     }
 
+    /**
+     * Resolves the initial chunk list from persisted state when resume is enabled.
+     *
+     * Falls back to a fresh partition when no valid state file is present.
+     */
     private fun resolveChunks(
         config: DownloadConfig,
         store: ResumeStateStore,
@@ -57,6 +78,7 @@ class DownloadManager(
             ?: scheduler.partition(fileSize = fileSize, chunkSize = config.chunkSize)
     }
 
+    /** Runs workers, receives their events, persists state snapshots, and emits updates. */
     private suspend fun FlowCollector<DownloadEvent>.runDownload(
         config: DownloadConfig,
         fileSize: Long,
@@ -103,6 +125,7 @@ class DownloadManager(
         }
     }
 
+    /** Processes worker-produced events and turns them into persisted progress state. */
     private suspend fun FlowCollector<DownloadEvent>.collectWorkerEvents(
         eventChannel: Channel<DownloadEvent>,
         chunkState: MutableMap<Int, Chunk>,
@@ -125,6 +148,7 @@ class DownloadManager(
         }
     }
 
+    /** Emits a [DownloadEvent.Progress] snapshot with current transfer speed. */
     private suspend fun FlowCollector<DownloadEvent>.emitProgress(
         bytesDownloaded: Long,
         totalBytes: Long,
@@ -141,6 +165,7 @@ class DownloadManager(
         )
     }
 
+    /** Verifies the final file digest when an expected checksum is provided. */
     private fun verifyChecksum(config: DownloadConfig) {
         val expected = config.expectedChecksum ?: return
         val actual = Checksum.sha256(config.destination)
@@ -150,6 +175,7 @@ class DownloadManager(
     }
 }
 
+/** Serializes in-memory chunk state into a resume snapshot. */
 private fun List<Chunk>.toDownloadState(
     url: String,
     fileSize: Long,

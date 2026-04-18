@@ -21,6 +21,12 @@ import kotlinx.coroutines.runBlocking
 private const val DEFAULT_CHUNK_SIZE_TEXT = "8MB"
 private const val DEFAULT_OUTPUT_FILENAME = "download.bin"
 
+/**
+ * CLI command for downloading a file with parallel HTTP range requests.
+ *
+ * This class translates user-provided command-line options into a [DownloadConfig], runs the
+ * download pipeline, and forwards progress rendering to [ProgressTracker].
+ */
 class ToyAria : CliktCommand(name = "toyaria") {
     private val url by argument(name = "URL").help("URL of the file to download")
     private val outputPath by option("-o", "--output").help("Destination file path").path()
@@ -40,6 +46,12 @@ class ToyAria : CliktCommand(name = "toyaria") {
         versionOption("1.0-SNAPSHOT", names = setOf("--version"))
     }
 
+    /**
+     * Builds the final [DownloadConfig] and executes the download.
+     *
+     * Any failure is converted into a human-readable stderr message and a non-zero process exit
+     * code.
+     */
     override fun run() {
         val destination = outputPath ?: Paths.get(inferFilename(url))
         val config =
@@ -67,12 +79,22 @@ class ToyAria : CliktCommand(name = "toyaria") {
             }
     }
 
+    /**
+     * Infers a destination filename from the URL path.
+     *
+     * Returns [DEFAULT_OUTPUT_FILENAME] when the URL does not expose a usable tail segment.
+     */
     private fun inferFilename(rawUrl: String): String {
         val path = URI(rawUrl).path.orEmpty()
         val candidate = path.substringAfterLast('/').trim()
         return candidate.ifBlank { DEFAULT_OUTPUT_FILENAME }
     }
 
+    /**
+     * Parses chunk-size text like `4MB`, `16mb`, `1024kb`, or raw bytes.
+     *
+     * The parser is case-insensitive and accepts units `b`, `kb`, `mb`, and `gb`.
+     */
     private fun parseChunkSize(input: String): Long {
         val normalized = input.trim().lowercase()
         val regex = Regex("^(\\d+)(b|kb|mb|gb)?$")

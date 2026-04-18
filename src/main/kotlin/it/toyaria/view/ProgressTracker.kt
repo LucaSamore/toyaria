@@ -19,7 +19,21 @@ private const val RATIO_MAX = 1.0
 private const val PERCENT_SCALE = 100.0
 private const val SECONDS_PER_MINUTE = 60L
 
+/**
+ * Renders real-time download progress to stderr.
+ *
+ * The tracker consumes [DownloadEvent] values, keeps the latest transfer metrics, and refreshes the
+ * progress bar on a fixed interval until completion or failure.
+ */
 class ProgressTracker(private val stderr: PrintStream = System.err) {
+    /**
+     * Starts consuming the download event stream and prints progress updates.
+     *
+     * Re-throws failures carried by [DownloadEvent.Failed] so callers can decide how to handle
+     * errors at the command level.
+     *
+     * @param events controller event stream for a single download.
+     */
     suspend fun track(events: Flow<DownloadEvent>) {
         val bytesDownloaded = AtomicLong(0L)
         val totalBytes = AtomicLong(0L)
@@ -73,6 +87,7 @@ class ProgressTracker(private val stderr: PrintStream = System.err) {
         failure?.let { error -> throw error }
     }
 
+    /** Formats and prints a single progress-bar frame. */
     private fun renderProgress(bytesDownloaded: Long, totalBytes: Long, bytesPerSecond: Long) {
         if (totalBytes <= 0L) {
             stderr.print(
@@ -90,6 +105,7 @@ class ProgressTracker(private val stderr: PrintStream = System.err) {
         stderr.print("\rtoyaria  [$bar]  ${"%.1f".format(percent)}%   $speed   ETA $eta")
     }
 
+    /** Estimates remaining time using current average throughput. */
     private fun estimateEta(remainingBytes: Long, bytesPerSecond: Long): String {
         if (bytesPerSecond <= 0L || remainingBytes <= 0L) {
             return ETA_UNAVAILABLE
@@ -100,6 +116,7 @@ class ProgressTracker(private val stderr: PrintStream = System.err) {
         return "%02d:%02d".format(minutes, remainder)
     }
 
+    /** Converts bytes to a human-readable string using base-1024 units. */
     private fun formatBytes(value: Long): String {
         val units = listOf("B", "KB", "MB", "GB", "TB")
         var size = value.toDouble().coerceAtLeast(0.0)
