@@ -8,8 +8,6 @@ It splits a file into byte ranges, downloads ranges concurrently, retries transi
 
 The implementation focuses on predictable behavior for long-running downloads.
 
----
-
 ## Table of Contents
 
 - [Problem Context](#problem-context)
@@ -21,14 +19,13 @@ The implementation focuses on predictable behavior for long-running downloads.
 - [Build and Run](#build-and-run)
 - [CLI Options](#cli-options)
 - [Usage Examples](#usage-examples)
+- [Extended Examples](#extended-examples)
 - [Resume Semantics](#resume-semantics)
 - [Integrity Verification](#integrity-verification)
 - [Configuration Defaults](#configuration-defaults)
 - [Tests](#tests)
 - [Project Layout](#project-layout)
 - [Dependencies](#dependencies)
-
----
 
 ## Problem Context
 
@@ -43,8 +40,6 @@ Large HTTP downloads can fail due to transient network issues, temporary server-
 
 This approach reduces the need to restart full transfers after partial failures.
 
----
-
 ## Main Capabilities
 
 - **Parallel range downloading**: the file is partitioned into configurable chunks and downloaded concurrently.
@@ -54,8 +49,6 @@ This approach reduces the need to restart full transfers after partial failures.
 - **Resume support**: state is persisted to a JSON sidecar file and reused on subsequent runs.
 - **Optional full-file checksum validation**: a provided SHA-256 digest is verified at the end.
 - **Terminal progress output**: percentage, throughput, and ETA are rendered to `stderr`.
-
----
 
 ## How the System Works
 
@@ -72,8 +65,6 @@ It then:
 7. updates persisted state after chunk completion;
 8. optionally validates full-file SHA-256 and clears state on success.
 
----
-
 ## Architecture
 
 The project follows a strict MVC separation:
@@ -83,8 +74,6 @@ The project follows a strict MVC separation:
 - **View**: command-line interface and progress rendering.
 
 An event stream is the boundary between Controller and View. The engine emits lifecycle events, while the terminal layer only observes and renders them. This keeps orchestration and presentation decoupled.
-
----
 
 ## Reliability Model
 
@@ -99,15 +88,11 @@ An event stream is the boundary between Controller and View. The engine emits li
 
 If checksum verification is requested and fails, the command exits with a non-zero status.
 
----
-
 ## Requirements
 
 - **JDK**: 25 (the project build uses a JVM toolchain set to Java 25)
 - **OS**: any platform supported by Java and Gradle
 - **Gradle**: wrapper included (`./gradlew`), no global installation required
-
----
 
 ## Build and Run
 
@@ -130,8 +115,6 @@ Build an executable artifact and run it directly:
 ./gradlew jar
 java -jar build/libs/toyaria-1.0-SNAPSHOT.jar URL
 ```
-
----
 
 ## CLI Options
 
@@ -156,8 +139,6 @@ Notes:
 - chunk size parsing is case-insensitive (`kb`, `mb`, `gb`, or bytes);
 - when output is omitted, filename is inferred from URL path;
 - if inference is not possible, a safe fallback filename is used.
-
----
 
 ## Usage Examples
 
@@ -191,7 +172,11 @@ Disable resume:
 ./gradlew run --args="http://localhost:8080/demo.mp4 --no-resume"
 ```
 
----
+## Extended Examples
+
+For a complete set of reproducible examples (including fixture generation, local server setup, resume demonstration, and checksum success/failure scenarios), see:
+
+- `examples/README.md`
 
 ## Resume Semantics
 
@@ -210,8 +195,6 @@ The state captures:
 
 On restart with resume enabled, only chunks still marked as pending are enqueued.
 
----
-
 ## Integrity Verification
 
 Two integrity layers are available:
@@ -220,8 +203,6 @@ Two integrity layers are available:
 - **Optional full-file SHA-256 validation** at completion (`--checksum`).
 
 When full-file validation is requested, mismatches terminate the command with a non-zero exit status.
-
----
 
 ## Configuration Defaults
 
@@ -234,8 +215,6 @@ When full-file validation is requested, mismatches terminate the command with a 
 | Retry backoff factor | `2.0` |
 | Resume | enabled |
 
----
-
 ## Tests
 
 Run the test suite with:
@@ -245,8 +224,6 @@ Run the test suite with:
 ```
 
 The suite includes unit and integration coverage for HTTP behavior, chunk partitioning, file assembly, state persistence, checksum utilities, and end-to-end download scenarios with a mock HTTP server.
-
----
 
 ## Project Layout
 
@@ -260,8 +237,6 @@ src/
       view/
   test/kotlin/it/toyaria/
 ```
-
----
 
 ## Dependencies
 
@@ -292,8 +267,6 @@ src/
 | detekt | `2.0.0-alpha.2` |
 | ktfmt | `0.26.0` |
 | kover | `0.9.8` |
-
----
 
 ## License
 

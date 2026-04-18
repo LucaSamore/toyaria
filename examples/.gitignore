@@ -1,0 +1,11 @@
+# Generated test assets and outputs
+/generated/
+/downloads/
+/tmp/
+
+# Runtime state produced by toyaria examples
+*.toyaria-state.json
+
+# macOS
+.DS_Store
+
