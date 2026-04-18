@@ -29,6 +29,8 @@ kotlin { jvmToolchain(25) }
 
 ktfmt { kotlinLangStyle() }
 
+kover { reports { filters { excludes { packages("it.toyaria.view") } } } }
+
 application { mainClass = "MainKt" }
 
 tasks.test { useJUnitPlatform() }
