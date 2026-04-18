@@ -1,14 +1,16 @@
 plugins {
     alias(libs.plugins.kotlin)
+    alias(libs.plugins.detekt)
+    alias(libs.plugins.ktfmt)
+    alias(libs.plugins.kover)
     alias(libs.plugins.kotlinx.serialization)
 }
 
 group = "it.toyaria"
+
 version = "1.0-SNAPSHOT"
 
-repositories {
-    mavenCentral()
-}
+repositories { mavenCentral() }
 
 dependencies {
     implementation(libs.ktor.client.cio)
@@ -22,6 +24,6 @@ dependencies {
     testImplementation(libs.okhttp3.mockwebserver)
 }
 
-kotlin {
-    jvmToolchain(25)
-}
+kotlin { jvmToolchain(25) }
+
+ktfmt { kotlinLangStyle() }
