@@ -1,5 +1,6 @@
 plugins {
     alias(libs.plugins.kotlin)
+    application
     alias(libs.plugins.detekt)
     alias(libs.plugins.ktfmt)
     alias(libs.plugins.kover)
@@ -27,3 +28,7 @@ dependencies {
 kotlin { jvmToolchain(25) }
 
 ktfmt { kotlinLangStyle() }
+
+application { mainClass = "MainKt" }
+
+tasks.test { useJUnitPlatform() }
