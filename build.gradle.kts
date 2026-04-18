@@ -1,5 +1,6 @@
 plugins {
-    kotlin("jvm") version "2.3.0"
+    alias(libs.plugins.kotlin)
+    alias(libs.plugins.kotlinx.serialization)
 }
 
 group = "it.toyaria"
@@ -10,13 +11,17 @@ repositories {
 }
 
 dependencies {
-    testImplementation(kotlin("test"))
+    implementation(libs.ktor.client.cio)
+    implementation(libs.kotlinx.coroutines.core)
+    implementation(libs.clikt)
+    implementation(libs.kotlinx.serialization.json)
+    implementation(libs.logback.classic)
+    testImplementation(libs.kotlin.test.junit5)
+    testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation(libs.mockk)
+    testImplementation(libs.okhttp3.mockwebserver)
 }
 
 kotlin {
     jvmToolchain(25)
-}
-
-tasks.test {
-    useJUnitPlatform()
 }
